@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <!-- Load Styles -->
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.2.624/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.2.624/styles/kendo.default.min.css" />
+    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.3.1111/styles/kendo.common.min.css" />
+    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.3.1111/styles/kendo.bootstrap.min.css" />
     <!-- Framework Libraries -->
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="http://kendo.cdn.telerik.com/2015.2.624/js/kendo.web.min.js"></script>
+    <script type="text/javascript" src="http://kendo.cdn.telerik.com/2015.3.1111/js/kendo.web.min.js"></script>
     <!-- Application Libraries -->
     <script type="text/javascript">
         $(document).ready(function(){
+            var apiPrefix = ""; // Modify as needed for your application.
             var catalogType = "static"; // Type should be either dynamic or static.
             var protocol = (window.location.protocol === "file:") ? "http:" : window.location.protocol;
             var origin = "";
@@ -22,7 +23,7 @@
             } else {
                 origin = "localhost:8980";
             }
-            var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : "";
+            var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : origin;
             var serviceName = (window.location.protocol === "file:") ? "/<webapp>" : (firstFolder === "catview.html" ? "" : "/" + firstFolder);
 
             var JSDOCatalog = {
@@ -51,7 +52,7 @@
                 setContext: function(serviceIndex, resourceName, operationName){
                     this._service = this.getService(serviceIndex);
 
-                    if (this._service) {
+                    if (!$.isEmptyObject(this._service)) {
                         this._resource = ($.grep(this._service.resources, function(e){ return e.name === resourceName; }))[0] || null;
                     } else {
                         this._resource = null;
@@ -68,13 +69,16 @@
                     }
                 },
                 getResource: function(){
-                    return this._resource;
+                    return this._resource || null;
                 },
                 getOperation: function(){
-                    return this._operation;
+                    return this._operation || null;
+                },
+                getSchema: function(){
+                    return ((this._resource || {}).schema || {}).properties || null;
                 },
                 getBaseURL: function(){
-                    return protocol + "//" + origin + serviceName + this._service.address;
+                    return protocol + "//" + origin + serviceName + apiPrefix + this._service.address;
                 },
                 getOperationURL: function(){
                     return this.getBaseURL() + (this._resource.path || "") + (this._operation.path || "");
@@ -304,7 +308,7 @@
                             j_password: passwd
                         },
                         dataType: "text",
-                        url: protocol + "//" + origin + serviceName + "/static/auth/j_spring_security_check",
+                        url: protocol + "//" + origin + serviceName + apiPrefix + "/static/auth/j_spring_security_check",
                         method: "POST",
                         success: function(data, textStatus, jqXHR){
                             $("#loginWindow").data("kendoWindow").close();
@@ -369,7 +373,7 @@
             if (catalogType === "dynamic") {
                 $("#catalogURL").val(protocol + "//" + origin + serviceName + "/rest/si/catalog");
             } else {
-                $("#catalogURL").val(protocol + "//" + origin + serviceName + "/static/mobile" + serviceName + ".json");
+                $("#catalogURL").val(protocol + "//" + origin + serviceName + "/" + origin + ".json");
             }
             loadCatalog($("#catalogURL").val());
 
