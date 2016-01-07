@@ -2,7 +2,7 @@
 
 Standalone viewer for JSDO catalogs.
 
-Installation/setup
+Installation / Setup
 ====================
 Run from your browser directly, and provide the URL to your PDSOE-produced catalog file. Or, drop in your project under the RESTContent or PASOEContent directory, and it will attempt to auto-detect the path to your catalog.
 
