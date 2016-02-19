@@ -15,16 +15,15 @@
     <script type="text/javascript">
         $(document).ready(function(){
             var apiPrefix = ""; // Modify as needed for your application.
-            var catalogType = "static"; // Type should be either dynamic or static.
             var protocol = (window.location.protocol === "file:") ? "http:" : window.location.protocol;
             var origin = "";
             if (window.location.hostname !== "") {
                 origin = window.location.hostname + (window.location.port ? ":" + window.location.port : "");
-            } else {
-                origin = "localhost:8980";
+            } else if (window.location.port !== "") {
+                origin = "localhost:" + window.location.port;
             }
             var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : origin;
-            var serviceName = (window.location.protocol === "file:") ? "/<webapp>" : (firstFolder === "catview.html" ? "" : "/" + firstFolder);
+            var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "catview.html" ? "" : "/" + firstFolder);
 
             var JSDOCatalog = {
                 _service: null,
@@ -85,6 +84,10 @@
                 }
             };
 
+            function testCatalog(url){
+                return $.get(url, null, null, "json");
+            };
+
             function loadCatalog(url){
                 var success = function(data, textStatus, jqXHR){
                     if (textStatus !== "success") {
@@ -97,7 +100,7 @@
                         refreshScreen();
                     }
                 };
-                $.get(url, null, success, "json");
+                return $.get(url, null, success, "json");
             };
 
             function refreshScreen(){
@@ -369,13 +372,37 @@
                 expandMode: "multiple"
             });
 
-            // Load catalog from initial URL.
-            if (catalogType === "dynamic") {
-                $("#catalogURL").val(protocol + "//" + origin + serviceName + "/rest/si/catalog");
-            } else {
-                $("#catalogURL").val(protocol + "//" + origin + serviceName + "/" + origin + ".json");
-            }
-            loadCatalog($("#catalogURL").val());
+            /**
+             * Test for location of a catalog based on 3 typical locations:
+             *  - WebSpeed transport dynamic catalog.
+             *  - REST adapter dynamic catalog.
+             *  - Typical static catalog.
+             */
+            var dynWebURL = (protocol + "//" + origin + serviceName + "/web/si/catalog");
+            var dynRestURL = (protocol + "//" + origin + serviceName + "/rest/si/catalog");
+            var staticRestURL = (protocol + "//" + origin + serviceName + "/" + origin + ".json");
+            testCatalog(dynWebURL)
+                .done(function(){
+                    $("#catalogURL").val(dynWebURL);
+                    loadCatalog(dynWebURL);
+                })
+                .fail(function(){
+                    testCatalog(dynRestURL)
+                        .done(function(){
+                            $("#catalogURL").val(dynRestURL);
+                            loadCatalog(dynRestURL);
+                        })
+                        .fail(function(){
+                            testCatalog(staticRestURL)
+                                .done(function(){
+                                    $("#catalogURL").val(staticRestURL);
+                                    loadCatalog(staticRestURL);
+                                })
+                                .fail(function(){
+                                    alert("Failed to find a default catalog. Please specify an explicit URL to your catalog.");
+                                });
+                        });
+                });
 
             // Hide certain elements by default.
             $("#rightPane").hide();
@@ -462,7 +489,7 @@
             <div id="header" class="header-section k-header col-sm-12">
                 <p class="title">Catalog Viewer</p>
                 <div>
-                    <span class="description">Catalog URL:</span>
+                    <span class="description">Catalog&nbsp;URL:</span>
                     <input type="text" id="catalogURL" name="catalogURL" class="k-textbox" value=""/>
                     <button id="btnLoadCatalog" class="k-primary">Load Catalog</button>
                 </div>
