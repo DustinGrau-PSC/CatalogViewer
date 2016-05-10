@@ -14,7 +14,6 @@
     <!-- Application Libraries -->
     <script type="text/javascript">
         $(document).ready(function(){
-            var apiPrefix = ""; // Modify as needed for your application.
             var protocol = (window.location.protocol === "file:") ? "http:" : window.location.protocol;
             var origin = "";
             if (window.location.hostname !== "") {
@@ -32,7 +31,9 @@
                 data: "",
                 setData: function(data){
                     // Transform data as needed for viewer.
+                    var services = [];
                     $.each((data.services || []), function(i, service){
+                        services.push(service.name + " (" + service.address + ")");
                         $.each((service.resources), function(j, resource){
                             $.each((resource.operations || []), function(k, operation){
                                 if (!operation.name) {
@@ -43,6 +44,7 @@
                         });
                     });
                     this.data = data;
+                    serviceDS.data(services);
                 },
                 getService: function(index){
                     if (!index) { index = 0; }
@@ -77,7 +79,7 @@
                     return ((this._resource || {}).schema || {}).properties || null;
                 },
                 getBaseURL: function(){
-                    return protocol + "//" + origin + serviceName + apiPrefix + this._service.address;
+                    return protocol + "//" + origin + serviceName + this._service.address;
                 },
                 getOperationURL: function(){
                     return this.getBaseURL() + (this._resource.path || "") + (this._operation.path || "");
@@ -97,16 +99,15 @@
                         JSDOCatalog.setData(data);
 
                         // Update the screen with new resources.
-                        refreshScreen();
+                        refreshScreen(0);
                     }
                 };
                 return $.get(url, null, success, "json");
             };
 
-            function refreshScreen(){
-                var service = JSDOCatalog.getService();
+            function refreshScreen(index){
+                var service = JSDOCatalog.getService(index);
                 if (service.resources) {
-                    $("#serviceView").html("<b>Service:</b> " + service.name + " (" + service.address + ")");
                     $("#operationView").empty();
                     $("#paramView").empty();
                     $("#schemaView").empty();
@@ -145,7 +146,8 @@
             };
 
             function updateInfo(resource, operation){
-                JSDOCatalog.setContext(0, resource.name, operation.name);
+                var serviceIndex = $("#serviceSelect").getKendoDropDownList().select() || 0;
+                JSDOCatalog.setContext(serviceIndex, resource.name, operation.name);
                 var resourceObj = JSDOCatalog.getResource();
                 if (resourceObj) {
                     var operationObj = JSDOCatalog.getOperation();
@@ -311,7 +313,7 @@
                             j_password: passwd
                         },
                         dataType: "text",
-                        url: protocol + "//" + origin + serviceName + apiPrefix + "/static/auth/j_spring_security_check",
+                        url: protocol + "//" + origin + serviceName + "/static/auth/j_spring_security_check",
                         method: "POST",
                         success: function(data, textStatus, jqXHR){
                             $("#loginWindow").data("kendoWindow").close();
@@ -340,12 +342,27 @@
                 }
             });
 
+            var serviceDS = new kendo.data.DataSource();
+
             var resourceDS = new kendo.data.HierarchicalDataSource({
                 data: [],
                 schema: {
                     model: {
                         children: "operations"
                     }
+                }
+            });
+
+            var service = $("#serviceSelect").kendoDropDownList({
+                dataSource: serviceDS,
+                select: function(e){
+                    // Get item value.
+                    var item = e.item || {};
+                    $("#requestData").val("");
+                    $("#responseData").val("");
+                    $("#paramView").empty();
+                    $("#schemaView").empty();
+                    refreshScreen(item.index());
                 }
             });
 
@@ -378,25 +395,34 @@
              *  - REST adapter dynamic catalog.
              *  - Typical static catalog.
              */
-            var dynWebURL = (protocol + "//" + origin + serviceName + "/web/si/catalog");
-            var dynRestURL = (protocol + "//" + origin + serviceName + "/rest/si/catalog");
+            var dynWebURL = (protocol + "//" + origin + serviceName + "/web/pdo");
+            var dynRestURL = (protocol + "//" + origin + serviceName + "/rest/pdo/catalog");
             var staticRestURL = (protocol + "//" + origin + serviceName + "/" + origin + ".json");
             testCatalog(dynWebURL)
-                .done(function(){
+                .done(function(data){
                     $("#catalogURL").val(dynWebURL);
-                    loadCatalog(dynWebURL);
+                    // Add data to the local catalog object.
+                    JSDOCatalog.setData(data);
+                    // Update the screen with new resources.
+                    refreshScreen(0);
                 })
                 .fail(function(){
                     testCatalog(dynRestURL)
-                        .done(function(){
+                        .done(function(data){
                             $("#catalogURL").val(dynRestURL);
-                            loadCatalog(dynRestURL);
+                            // Add data to the local catalog object.
+                            JSDOCatalog.setData(data);
+                            // Update the screen with new resources.
+                            refreshScreen(0);
                         })
                         .fail(function(){
                             testCatalog(staticRestURL)
-                                .done(function(){
+                                .done(function(data){
                                     $("#catalogURL").val(staticRestURL);
-                                    loadCatalog(staticRestURL);
+                                    // Add data to the local catalog object.
+                                    JSDOCatalog.setData(data);
+                                    // Update the screen with new resources.
+                                    refreshScreen(0);
                                 })
                                 .fail(function(){
                                     alert("Failed to find a default catalog. Please specify an explicit URL to your catalog.");
@@ -497,7 +523,7 @@
         </div>
         <div class="row-fluid">
             <div id="leftPane" class="col-sm-3">
-                <div id="serviceView"></div>
+                <div id="serviceView"><b>Service:</b> <select id="serviceSelect" style="width:360px"></select></div>
                 <div id="resourceView"></div>
             </div>
             <div id="rightPane" class="col-sm-9">
