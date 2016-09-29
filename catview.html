@@ -1,16 +1,16 @@
 <!doctype html>
 <html>
 <head>
-    <title>JSDO Catalog Viewer</title>
+    <title>Catalog Viewer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <!-- Load Styles -->
-    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.3.1111/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2015.3.1111/styles/kendo.bootstrap.min.css" />
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2016.3.914/styles/kendo.common.min.css" />
+    <link rel="stylesheet" href="http://kendo.cdn.telerik.com/2016.3.914/styles/kendo.bootstrap.min.css" />
     <!-- Framework Libraries -->
-    <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
-    <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="http://kendo.cdn.telerik.com/2015.3.1111/js/kendo.web.min.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.12.1.min.js"></script>
+    <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="http://kendo.cdn.telerik.com/2016.3.914/js/kendo.web.min.js"></script>
     <!-- Application Libraries -->
     <script type="text/javascript">
         $(document).ready(function(){
@@ -24,7 +24,7 @@
             var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : origin;
             var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "static" ? "" : "/" + firstFolder);
 
-            var JSDOCatalog = {
+            var Catalog = {
                 _service: null,
                 _resource: null,
                 _operation: null,
@@ -130,14 +130,14 @@
                         alert("Error retrieving catalog.");
                     } else {
                         // Add data to the local catalog object.
-                        JSDOCatalog.setData(data);
+                        Catalog.setData(data);
                     }
                 };
                 return $.get(url, null, success, "json");
             };
 
             function refreshScreen(index){
-                var service = JSDOCatalog.getService(index);
+                var service = Catalog.getService(index);
                 if (service.resources) {
                     $("#operationView").empty();
                     $("#paramView").empty();
@@ -178,16 +178,22 @@
 
             function updateInfo(resource, operation){
                 var serviceIndex = $("#serviceSelect").getKendoDropDownList().select() || 0;
-                JSDOCatalog.setContext(serviceIndex, resource.name, operation.name);
-                var resourceObj = JSDOCatalog.getResource();
+                Catalog.setContext(serviceIndex, resource.name, operation.name);
+                var resourceObj = Catalog.getResource();
                 if (resourceObj) {
-                    var operationObj = JSDOCatalog.getOperation();
+                    var operationObj = Catalog.getOperation();
                     if (operationObj) {
-                        var operationInfo = operationObj.type.toUpperCase() + " [" + operationObj.verb.toUpperCase() + "]";
+                        var operationInfo = "<b>" + operationObj.type.toUpperCase() + " [" + operationObj.verb.toUpperCase() + "]</b>";
                         if (operationObj.type == "invoke") {
-                            operationInfo += " (Called as '" + operationObj.name + "' in JSDO)";
+                            operationInfo += " (Invoked as '" + operationObj.name + "' in JSDO)";
                         }
-                        operationInfo += "<br/>" + JSDOCatalog.getOperationURL();
+                        if (operationObj.mappingType) {
+                            operationInfo += "<br/><b>Mapping Type:</b> " + operationObj.mappingType;
+                        }
+                        if (operationObj.capabilities) {
+                            operationInfo += "<br/><b>Capabilities:</b> " + operationObj.capabilities;
+                        }
+                        operationInfo += "<br/><a href='" + Catalog.getOperationURL() + "'>" + Catalog.getOperationURL() + "</a>";
 
                         // Update the operation name/details, and clear the parameter/schema areas.
                         $("#operationView").html(operationInfo);
@@ -278,9 +284,9 @@
                     }
                 }
 
-                var operation = JSDOCatalog.getOperation();
+                var operation = Catalog.getOperation();
                 if (operation) {
-                    var url = JSDOCatalog.getOperationURL();
+                    var url = Catalog.getOperationURL();
                     if (url.indexOf("{filter}") >= 0) {
                         if (data && data.filter) {
                             url = url.replace("{filter}", JSON.stringify(data.filter));
@@ -434,21 +440,21 @@
                 .done(function(data){
                     $("#catalogURL").val(dynWebURL);
                     // Add data to the local catalog object.
-                    JSDOCatalog.setData(data);
+                    Catalog.setData(data);
                 })
                 .fail(function(){
                     testCatalog(dynRestURL)
                         .done(function(data){
                             $("#catalogURL").val(dynRestURL);
                             // Add data to the local catalog object.
-                            JSDOCatalog.setData(data);
+                            Catalog.setData(data);
                         })
                         .fail(function(){
                             testCatalog(staticRestURL)
                                 .done(function(data){
                                     $("#catalogURL").val(staticRestURL);
                                     // Add data to the local catalog object.
-                                    JSDOCatalog.setData(data);
+                                    Catalog.setData(data);
                                 })
                                 .fail(function(){
                                     alert("Failed to find a default catalog. Please specify an explicit URL to your catalog.");
