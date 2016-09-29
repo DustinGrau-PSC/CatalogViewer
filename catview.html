@@ -22,7 +22,7 @@
                 origin = "localhost:" + window.location.port;
             }
             var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : origin;
-            var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "catview.html" ? "" : "/" + firstFolder);
+            var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "static" ? "" : "/" + firstFolder);
 
             var JSDOCatalog = {
                 _service: null,
@@ -45,6 +45,13 @@
                     });
                     this.data = data;
                     serviceDS.data(services);
+
+                    // Select value for selected service and update screen.
+                    var selectedService = storage.getSessionObject("service." + $("#catalogURL").val()) || 0;
+                    refreshScreen(parseInt(selectedService, 10));
+                    setTimeout(function(){
+                        $("#serviceSelect").getKendoDropDownList().select(parseInt(selectedService, 10));
+                    }, 100);
                 },
                 getService: function(index){
                     if (!index) { index = 0; }
@@ -86,6 +93,33 @@
                 }
             };
 
+            var storage = {
+                setSessionObject: function(key, value){
+                    var storage = window.sessionStorage || null;
+                    if (storage && storage.getObject) {
+                        storage.setObject(key, value);
+                        return true;
+                    } else if (storage) {
+                        storage[key] = JSON.stringify(value);
+                        return true;
+                    }
+                    return false;
+                },
+                getSessionObject: function(key){
+                    var storage = window.sessionStorage || null;
+                    if (storage && storage.getObject) {
+                        return storage.getObject(key);
+                    } else if (storage) {
+                        var value = storage[key];
+                        if (typeof(storage[key]) === "string") {
+                            // Only strings should be stored.
+                            return JSON.parse(value);
+                        }
+                    }
+                    return "";
+                }
+            };
+
             function testCatalog(url){
                 return $.get(url, null, null, "json");
             };
@@ -97,9 +131,6 @@
                     } else {
                         // Add data to the local catalog object.
                         JSDOCatalog.setData(data);
-
-                        // Update the screen with new resources.
-                        refreshScreen(0);
                     }
                 };
                 return $.get(url, null, success, "json");
@@ -363,6 +394,7 @@
                     $("#paramView").empty();
                     $("#schemaView").empty();
                     refreshScreen(item.index());
+                    storage.setSessionObject("service." + $("#catalogURL").val(), item.index());
                 }
             });
 
@@ -403,8 +435,6 @@
                     $("#catalogURL").val(dynWebURL);
                     // Add data to the local catalog object.
                     JSDOCatalog.setData(data);
-                    // Update the screen with new resources.
-                    refreshScreen(0);
                 })
                 .fail(function(){
                     testCatalog(dynRestURL)
@@ -412,8 +442,6 @@
                             $("#catalogURL").val(dynRestURL);
                             // Add data to the local catalog object.
                             JSDOCatalog.setData(data);
-                            // Update the screen with new resources.
-                            refreshScreen(0);
                         })
                         .fail(function(){
                             testCatalog(staticRestURL)
@@ -421,8 +449,6 @@
                                     $("#catalogURL").val(staticRestURL);
                                     // Add data to the local catalog object.
                                     JSDOCatalog.setData(data);
-                                    // Update the screen with new resources.
-                                    refreshScreen(0);
                                 })
                                 .fail(function(){
                                     alert("Failed to find a default catalog. Please specify an explicit URL to your catalog.");
@@ -476,7 +502,7 @@
         }
 
         #serviceView {
-            border-bottom: 1px solid #666666;
+            border-bottom: 1px solid #DDDDDD;
         }
 
         #operationView {
@@ -523,7 +549,9 @@
         </div>
         <div class="row-fluid">
             <div id="leftPane" class="col-sm-3">
-                <div id="serviceView"><b>Service:</b> <select id="serviceSelect" style="width:360px"></select></div>
+                <div id="serviceView">
+                    <b>Service:</b> <select id="serviceSelect" style="padding-bottom:5px;width:320px"></select>
+                </div>
                 <div id="resourceView"></div>
             </div>
             <div id="rightPane" class="col-sm-9">
