@@ -224,7 +224,10 @@
                                 paramInfo += "<li>" + param.name + (dataType ? " [" + dataType + "] (" : " (") + param.type + ")</li>";
                             }
                             if (resourceObj.schema) {
-                                schemaObj = (resourceObj.schema.properties[param.name] || resourceObj.dataDefinitions[param.name]) || null;
+                                schemaObj = resourceObj.schema.properties[param.name] || null;
+                                if (!schemaObj && resourceObj.dataDefinitions) {
+                                    schemaObj = resourceObj.dataDefinitions[param.name] || null;
+                                }
                                 if (schemaObj) {
                                     schemaInfo = "<li><b>" + param.name + "</b></li>";
                                     var exclude = "ablType,default,title,type";
