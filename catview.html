@@ -239,6 +239,7 @@
                                                     schemaInfo += "<li>&nbsp;&nbsp;" + fieldName + " as '" + (fieldDef.title || fieldName) + "' [" + (fieldDef.ablType || fieldDef.type) + "]";
                                                     $.each(fieldDef, function(propName, propValue){
                                                         if (exclude.indexOf(propName) === -1) {
+                                                            if (propValue === null || propValue === undefined) { propValue = "null"; }
                                                             schemaInfo += " " + propName + ": " + ((typeof propValue === "string") ? propValue : JSON.stringify(propValue));
                                                         }
                                                     });
@@ -250,8 +251,9 @@
                                         $.each(schemaObj.items.properties, function(fieldName, fieldDef){
                                             if (!fieldName.startsWith("_")) {
                                                 schemaInfo += "<li>&nbsp;" + fieldName + " as '" + (fieldDef.title || fieldName) + "' [" + (fieldDef.ablType || fieldDef.type) + "]";
-                                                $.each(fieldDef, function(propName, prop){
+                                                $.each(fieldDef, function(propName, propValue){
                                                     if (exclude.indexOf(propName) === -1) {
+                                                        if (propValue === null || propValue === undefined) { propValue = "null"; }
                                                         schemaInfo += " " + propName + ": " + ((typeof propValue === "string") ? propValue : JSON.stringify(propValue));
                                                     }
                                                 });
