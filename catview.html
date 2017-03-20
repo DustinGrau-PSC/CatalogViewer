@@ -2,11 +2,12 @@
 <html>
 <head>
     <title>Catalog Viewer</title>
+    <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <!-- Load Styles -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.1.118/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.1.118/styles/kendo.bootstrap.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.1.118/styles/kendo.common.min.css"/>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.1.118/styles/kendo.bootstrap.min.css"/>
     <!-- Framework Libraries -->
     <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
@@ -149,18 +150,19 @@
 
             function getSampleValue(type){
                 var sample = null;
+                var year = (new Date()).getFullYear();
                 switch(type){
                     case "character":
                         sample = "String";
                         break;
                     case "date":
-                        sample = "2014-03-14";
+                        sample = year + "-03-14";
                         break;
                     case "datetime":
-                        sample = "2014-03-14T01:20:30+00:00";
+                        sample = year + "-03-14T01:20:30+00:00";
                         break;
                     case "datetime-tz":
-                        sample = "2014-03-14T01:20:30-04:00";
+                        sample = year + "-03-14T01:20:30-04:00";
                         break;
                     case "decimal":
                         sample = 3.1415;
@@ -272,7 +274,9 @@
                         if (requestParams != "") {
                             paramInfo += "<b>Request:</b><ul>" + requestParams + "</ul><br/>";
                             if (operationObj.type == "invoke") {
-                                sampleRequest = {request: sampleRequest};
+                                if (Catalog._service.settings.useRequest) {
+                                    sampleRequest = {request: sampleRequest};
+                                }
                             }
                             $("#requestData").val(JSON.stringify(sampleRequest, null, 4));
                         }
