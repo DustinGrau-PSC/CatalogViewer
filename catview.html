@@ -23,8 +23,10 @@
             } else if (window.location.port !== "") {
                 origin = "localhost:" + window.location.port;
             }
-            var firstFolder = window.location.pathname ? window.location.pathname.split("/")[1] : origin;
-            var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "static" ? "" : "/" + firstFolder);
+            var folders = window.location.pathname ? window.location.pathname.split("/") : [];
+            var firstFolder = folders.length > 1 ? folders[1] : origin;
+            var secondFolder = folders.length > 2 ? folders[2] : "";
+            var serviceName = (window.location.protocol === "file:") ? "/" : (firstFolder === "static" ? "/" : "/" + firstFolder);
 
             var Catalog = {
                 _service: null,
