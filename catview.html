@@ -297,12 +297,12 @@
             };
 
             function runAPI(){
-                var data = null;
+                var reqData = null;
                 var request = $("#requestData").val();
                 if (request.indexOf("{") >= 0) {
                     try {
-                        data = JSON.parse(request);
-                        $("#requestData").val(JSON.stringify(data, null, 4));
+                        reqData = JSON.parse(request);
+                        $("#requestData").val(JSON.stringify(reqData, null, 4));
                     } catch(e) {
                         alert(e);
                         return;
@@ -313,17 +313,25 @@
                 if (operation) {
                     var url = Catalog.getOperationURL();
                     if (url.indexOf("{filter}") >= 0) {
-                        if (data && data.filter) {
-                            url = url.replace("{filter}", JSON.stringify(data.filter));
-                            delete data.filter;
+                        if (reqData && reqData.filter) {
+                            // URL data must be completely encoded for Tomcat (especially as of v8 in OE11.7).
+                            url = url.replace("{filter}", encodeURIComponent(JSON.stringify(reqData.filter)));
+                            delete reqData.filter;
                         } else {
+                            // Remove the unused filter placeholder when no filter is present.
                             url = url.replace("{filter}", "");
                         }
+                    }
+                    
+                    var encodedData = null;
+                    if (operation.verb.toLowerCase() !== "get") {
+                        // No body data should be sent on a GET operation.
+                        encodedData = reqData ? JSON.stringify(reqData) : null
                     }
 
                     $.ajax({
                         contentType: "application/json; charset=utf-8",
-                        data: data ? JSON.stringify(data) : null,
+                        data: encodedData,
                         dataType: "json",
                         url: url,
                         method: operation.verb,
