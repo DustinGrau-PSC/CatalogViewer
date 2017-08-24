@@ -259,8 +259,10 @@
 		            }
                 });
 
-                // Return only unique items in the list of primary keys.
-                data.primaryKey = $.distinct(data.primaryKey);
+                if (data.primaryKey.length > 0) {
+                    // Return only unique items in the list of primary keys.
+                    data.primaryKey = $.distinct(data.primaryKey);
+                }
 
                 return data;
             };
@@ -317,7 +319,7 @@
                                         top: 20
                                     };
 
-                                    if (schemaData.primaryKey.length > 0) {
+                                    if (schemaData.primaryKey.length > 0 && schemaData.primaryKey[0] !== "") {
                                         // Add the first primary key as a sample for filtering/sorting.
                                         sample.filter = {
                                             logic: "and",
