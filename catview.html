@@ -223,7 +223,8 @@
 		                            data.schemaInfo += "<li>&nbsp;<b>" + tableName + "</b></li>";
 		                            data.primaryKey = $.merge($.merge([], data.primaryKey), tableDef.primaryKey || []);
 		                            data.foreignKey = $.merge($.merge([], data.foreignKey), tableDef.foreignKeys || []);
-		                            $.each(tableDef.items.properties, function(fieldName, fieldDef){
+		                            var properties = tableDef.items ? (tableDef.items.properties || []) : (tableDef.properties || []);
+		                            $.each(properties, function(fieldName, fieldDef){
 		                                if (!fieldName.startsWith("_")) {
 		                                    data.schemaInfo += "<li>&nbsp;&nbsp;" + fieldName + " as '" + (fieldDef.title || fieldName) + "' [" + (fieldDef.ablType || fieldDef.type) + "]";
 		                                    $.each(fieldDef, function(propName, propValue){
@@ -278,11 +279,11 @@
                         if (operationObj.type == "invoke") {
                             operationInfo += " (Invoked as '" + operationObj.name + "' in JSDO)";
                         }
-                        if (operationObj.mappingType) {
-                            operationInfo += "<br/><b>Mapping Type:</b> " + operationObj.mappingType;
+                        if (operationObj.hasOwnProperty("mappingType")) {
+                            operationInfo += "<br/><b>Mapping Type:</b> " + ((operationObj.mappingType !== "") ? operationObj.mappingType : "JFP");
                         }
-                        if (operationObj.capabilities) {
-                            operationInfo += "<br/><b>Capabilities:</b> " + operationObj.capabilities;
+                        if (operationObj.hasOwnProperty("capabilities")) {
+                            operationInfo += "<br/><b>Capabilities:</b> " + ((operationObj.capabilities !== "") ? operationObj.capabilities : "None");
                         }
                         operationInfo += "<br/><a href='" + Catalog.getOperationURL() + "'>" + Catalog.getOperationURL() + "</a>";
 
@@ -310,39 +311,57 @@
                                 queryParams += "<li>" + param.name + (dataType ? " [" + dataType + "]" : "") + "</li>";
                                 var sample = {};
                                 if (operationObj.mappingType && operationObj.mappingType.toUpperCase() === "AFP") {
-                                    // Provide a proper sample object for the AFP plugin.
-                                    sample = {
-                                        client: "KendoUI",
-                                        filter: {},
-                                        skip: 0,
-                                        sort: [],
-                                        top: 20
-                                    };
+                                    // Provide a proper sample object for the AFP plugin, based on server-side capabilities.
+                                    var capabilities = (operationObj.capabilities || "").replace(/\s/g, "").split(",");
+
+                                    if ($.inArray("filter", capabilities) > -1) {
+                                        sample.client = "KendoUI";
+                                        sample.filter = "";
+                                    }
+
+                                    if ($.inArray("orderBy", capabilities) > -1 || $.inArray("sort", capabilities) > -1) {
+                                        sample.sort = [];
+                                    }
+
+                                    if ($.inArray("skip", capabilities) > -1 && $.inArray("top", capabilities) > -1) {
+                                        sample.skip = 0;
+                                        sample.top = 20;
+                                    }
 
                                     if (schemaData.primaryKey.length > 0 && schemaData.primaryKey[0] !== "") {
-                                        // Add the first primary key as a sample for filtering/sorting.
-                                        sample.filter = {
-                                            logic: "and",
-                                            filters: [{field: schemaData.primaryKey[0], operator: "startsWith", value: ""}]
-                                        };
-                                        sample.sort = [{field: schemaData.primaryKey[0], dir: "asc"}];
+                                        if ($.inArray("filter", capabilities) > -1) {
+	                                        // Add the first primary key as a sample for filtering/sorting.
+	                                        sample.filter = {
+	                                            logic: "and",
+	                                            filters: [{field: schemaData.primaryKey[0], operator: "startsWith", value: ""}]
+	                                        };
+                                        }
+
+                                        if ($.inArray("orderBy", capabilities) > -1 || $.inArray("sort", capabilities) > -1) {
+                                            sample.sort = [{field: schemaData.primaryKey[0], dir: "asc"}];
+                                        }
                                     }
+                                } else if (operationObj.mappingType && operationObj.mappingType.toUpperCase() === "JFP") {
+                                    sample.ablFilter = schemaData.primaryKey[0] + " gt ''";
                                 } else {
                                     // Just provide a blank string for the query (assumes JFP).
                                     sample[param.name] = "";
                                 }
                                 sampleRequest.filter = sample;
-                            } else if (param.type.indexOf("REQUEST") > -1) {
-                                requestParams += "<li>" + param.name + (dataType ? " [" + dataType + "]" : "") + "</li>";
-                                if (schemaData.sampleData[param.name]) {
-                                    // Use generated sample from schema if present.
-                                    sampleRequest[param.name] = schemaData.sampleData[param.name];
-                                } else {
-                                    // Otherwise get a primitive sample value.
-                                    sampleRequest[param.name] = getSampleValue(dataType);
-                                }
-                            } else if (param.type.indexOf("RESPONSE") > -1) {
-                                responseParams += "<li>" + param.name + (dataType ? " [" + dataType + "]" : "") + "</li>";
+                            } else if (param.type.indexOf("BODY") > -1) {
+	                            if (param.type.indexOf("REQUEST") > -1) {
+	                                requestParams += "<li>" + param.name + (dataType ? " [" + dataType + "]" : "") + "</li>";
+	                                if (schemaData.sampleData[param.name]) {
+	                                    // Use generated sample from schema if present.
+	                                    sampleRequest[param.name] = schemaData.sampleData[param.name];
+	                                } else {
+	                                    // Otherwise get a primitive sample value.
+	                                    sampleRequest[param.name] = getSampleValue(dataType);
+	                                }
+	                            }
+	                            if (param.type.indexOf("RESPONSE") > -1) {
+	                                responseParams += "<li>" + param.name + (dataType ? " [" + dataType + "]" : "") + "</li>";
+	                            }
                             } else {
                                 paramInfo += "<li>" + param.name + (dataType ? " [" + dataType + "] (" : " (") + param.type + ")</li>";
                             }
@@ -355,7 +374,8 @@
                         if (requestParams != "") {
                             paramInfo += '<b>Request:</b><ul style="list-style-type:none;">' + requestParams + '</ul><br/>';
                             if (operationObj.type == "invoke") {
-                                if (Catalog._service.settings.useRequest) {
+                                if (!Catalog._service.settings || (Catalog._service.settings && Catalog._service.settings.useRequest)) {
+                                    // Wrap with "request" object if no setting available or explicitly told to use request wrapper.
                                     sampleRequest = {request: sampleRequest};
                                 }
                             }
